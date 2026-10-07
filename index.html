@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Divisor de Logs Local</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* Gray-100 */
+        }
+        .drag-active {
+            border-color: #3b82f6 !important; /* Blue-500 */
+            background-color: #eff6ff !important; /* Blue-50 */
+        }
+        .spinner {
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top: 3px solid white;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="min-h-screen text-gray-800 flex flex-col items-center py-10 px-4 sm:px-6 lg:px-8">
+
+    <div class="max-w-4xl w-full space-y-8">
+        
+        <!-- Header -->
+        <div class="text-center">
+            <div class="inline-flex items-center justify-center p-3 bg-blue-600 rounded-xl shadow-lg mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+            </div>
+            <h1 class="text-3xl font-bold text-gray-900 tracking-tight">Divisor de Archivos Log</h1>
+            <p class="mt-2 text-sm text-gray-600">
+                Divide archivos <code class="bg-gray-200 px-1 py-0.5 rounded text-gray-800">.log</code> o de texto pesados en partes más pequeñas.<br>
+                <span class="font-medium text-green-600">100% Local y Seguro:</span> Los archivos no se suben a ningún servidor.
+            </p>
+        </div>
+
+        <!-- Main Card -->
+        <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
+            <div class="p-6 sm:p-8">
+                
+                <!-- Drag and Drop Area -->
+                <div id="drop-zone" class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center transition-colors duration-200 cursor-pointer hover:bg-gray-50 relative">
+                    <input type="file" id="file-input" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept=".log,.txt,text/*">
+                    <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                    <h3 class="text-lg font-medium text-gray-900">Haz clic o arrastra tu archivo aquí</h3>
+                    <p class="mt-1 text-sm text-gray-500">Soporta archivos .log, .txt de gran tamaño (GBs)</p>
+                </div>
+
+                <!-- Selected File Info -->
+                <div id="file-info" class="hidden mt-6 bg-blue-50 border border-blue-100 rounded-lg p-4 flex items-center justify-between">
+                    <div class="flex items-center space-x-3 overflow-hidden">
+                        <svg class="h-8 w-8 text-blue-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <div class="truncate">
+                            <p id="file-name" class="text-sm font-medium text-gray-900 truncate">archivo.log</p>
+                            <p id="file-size" class="text-xs text-gray-500">0 MB</p>
+                        </div>
+                    </div>
+                    <button id="remove-file-btn" class="text-gray-400 hover:text-red-500 transition-colors p-1" title="Quitar archivo">
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Settings Area -->
+                <div id="settings-area" class="hidden mt-8">
+                    <h3 class="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-4 border-b pb-2">Opciones de División</h3>
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                        <!-- Option: Lines -->
+                        <label class="relative flex items-start p-4 cursor-pointer rounded-lg border border-gray-200 bg-white shadow-sm hover:bg-gray-50 peer-checked:border-blue-500">
+                            <div class="flex items-center h-5">
+                                <input id="split-by-lines" name="split-method" type="radio" value="lines" checked class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                            </div>
+                            <div class="ml-3 flex-1">
+                                <span class="block text-sm font-medium text-gray-900">Por número de líneas</span>
+                                <span class="block text-xs text-gray-500 mt-1">Garantiza que las líneas no se corten a la mitad.</span>
+                            </div>
+                        </label>
+                        
+                        <!-- Option: Size -->
+                        <label class="relative flex items-start p-4 cursor-pointer rounded-lg border border-gray-200 bg-white shadow-sm hover:bg-gray-50 peer-checked:border-blue-500">
+                            <div class="flex items-center h-5">
+                                <input id="split-by-size" name="split-method" type="radio" value="size" class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                            </div>
+                            <div class="ml-3 flex-1">
+                                <span class="block text-sm font-medium text-gray-900">Por tamaño (MB)</span>
+                                <span class="block text-xs text-gray-500 mt-1">División rápida y exacta, podría cortar la última línea.</span>
+                            </div>
+                        </label>
+
+                        <!-- Option: Hour -->
+                        <label class="relative flex items-start p-4 cursor-pointer rounded-lg border border-gray-200 bg-white shadow-sm hover:bg-gray-50 peer-checked:border-blue-500">
+                            <div class="flex items-center h-5">
+                                <input id="split-by-hour" name="split-method" type="radio" value="hour" class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                            </div>
+                            <div class="ml-3 flex-1">
+                                <span class="block text-sm font-medium text-gray-900">Por hora</span>
+                                <span class="block text-xs text-gray-500 mt-1">Agrupa las líneas por hora detectada.</span>
+                            </div>
+                        </label>
+                    </div>
+
+                    <!-- Dynamic Input -->
+                    <div id="dynamic-input-container" class="mb-6">
+                        <label id="input-label" for="split-value" class="block text-sm font-medium text-gray-700 mb-1">Líneas por archivo</label>
+                        <div class="relative rounded-md shadow-sm">
+                            <input type="number" id="split-value" value="10000" min="1" class="block w-full rounded-md border-gray-300 pl-3 pr-12 focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2 border outline-none transition-shadow" placeholder="Ej. 10000">
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                                <span id="input-unit" class="text-gray-500 sm:text-sm">líneas</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button id="process-btn" class="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+                        <span id="process-text">Dividir Archivo</span>
+                        <div id="process-spinner" class="spinner ml-2 hidden"></div>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Area -->
+        <div id="results-area" class="hidden bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
+            <div class="px-6 py-5 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+                <h3 class="text-lg font-medium text-gray-900">Archivos Generados</h3>
+                <span id="results-count" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">0 partes</span>
+            </div>
+            <div class="p-6">
+                <ul id="results-list" class="divide-y divide-gray-200 max-h-96 overflow-y-auto pr-2">
+                    <!-- Results will be injected here via JS -->
+                </ul>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // DOM Elements
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const fileInfo = document.getElementById('file-info');
+        const fileNameEl = document.getElementById('file-name');
+        const fileSizeEl = document.getElementById('file-size');
+        const removeFileBtn = document.getElementById('remove-file-btn');
+        const settingsArea = document.getElementById('settings-area');
+        const splitByLinesRadio = document.getElementById('split-by-lines');
+        const splitBySizeRadio = document.getElementById('split-by-size');
+        const splitByHourRadio = document.getElementById('split-by-hour');
+        const dynamicInputContainer = document.getElementById('dynamic-input-container');
+        const inputLabel = document.getElementById('input-label');
+        const splitValueInput = document.getElementById('split-value');
+        const inputUnit = document.getElementById('input-unit');
+        const processBtn = document.getElementById('process-btn');
+        const processText = document.getElementById('process-text');
+        const processSpinner = document.getElementById('process-spinner');
+        const resultsArea = document.getElementById('results-area');
+        const resultsList = document.getElementById('results-list');
+        const resultsCount = document.getElementById('results-count');
+
+        // State
+        let currentFile = null;
+        let objectUrls = [];
+
+        // Utility: Format Bytes
+        function formatBytes(bytes, decimals = 2) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+        }
+
+        // Drag and Drop Events
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => dropZone.classList.add('drag-active'), false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => dropZone.classList.remove('drag-active'), false);
+        });
+
+        dropZone.addEventListener('drop', handleDrop, false);
+        fileInput.addEventListener('change', handleFileSelect, false);
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            if (files.length) handleFiles(files[0]);
+        }
+
+        function handleFileSelect(e) {
+            if (e.target.files.length) handleFiles(e.target.files[0]);
+        }
+
+        // Handle File Loading
+        function handleFiles(file) {
+            currentFile = file;
+            fileNameEl.textContent = file.name;
+            fileSizeEl.textContent = formatBytes(file.size);
+            
+            dropZone.classList.add('hidden');
+            fileInfo.classList.remove('hidden');
+            settingsArea.classList.remove('hidden');
+            resultsArea.classList.add('hidden');
+            
+            cleanupMemory();
+        }
+
+        removeFileBtn.addEventListener('click', () => {
+            currentFile = null;
+            fileInput.value = '';
+            dropZone.classList.remove('hidden');
+            fileInfo.classList.add('hidden');
+            settingsArea.classList.add('hidden');
+            resultsArea.classList.add('hidden');
+            cleanupMemory();
+        });
+
+        // Settings Toggle Logic
+        splitByLinesRadio.addEventListener('change', updateInputType);
+        splitBySizeRadio.addEventListener('change', updateInputType);
+        splitByHourRadio.addEventListener('change', updateInputType);
+
+        function updateInputType() {
+            if (splitByLinesRadio.checked) {
+                dynamicInputContainer.classList.remove('hidden');
+                inputLabel.textContent = 'Líneas por archivo';
+                splitValueInput.value = 10000;
+                splitValueInput.step = 100;
+                inputUnit.textContent = 'líneas';
+            } else if (splitBySizeRadio.checked) {
+                dynamicInputContainer.classList.remove('hidden');
+                inputLabel.textContent = 'Tamaño por archivo (MB)';
+                splitValueInput.value = 10;
+                splitValueInput.step = 0.5;
+                inputUnit.textContent = 'MB';
+            } else if (splitByHourRadio.checked) {
+                dynamicInputContainer.classList.add('hidden');
+            }
+        }
+
+        // Memory Management
+        function cleanupMemory() {
+            objectUrls.forEach(url => URL.revokeObjectURL(url));
+            objectUrls = [];
+            resultsList.innerHTML = '';
+        }
+
+        // Processing Logic
+        processBtn.addEventListener('click', async () => {
+            if (!currentFile) return;
+
+            const value = parseFloat(splitValueInput.value);
+            if (!splitByHourRadio.checked && (isNaN(value) || value <= 0)) {
+                alert("Por favor ingrese un valor válido mayor a 0.");
+                return;
+            }
+
+            processBtn.disabled = true;
+            processText.textContent = 'Procesando...';
+            processSpinner.classList.remove('hidden');
+            processBtn.classList.add('opacity-75', 'cursor-not-allowed');
+            resultsArea.classList.add('hidden');
+            cleanupMemory();
+
+            try {
+                let parts = [];
+                await new Promise(r => setTimeout(r, 50)); 
+
+                if (splitByLinesRadio.checked) {
+                    parts = await splitFileByLines(currentFile, Math.floor(value));
+                } else if (splitBySizeRadio.checked) {
+                    parts = await splitFileBySize(currentFile, value);
+                } else {
+                    parts = await splitFileByHour(currentFile);
+                }
+
+                renderResults(parts);
+                resultsArea.classList.remove('hidden');
+            } catch (error) {
+                console.error("Error procesando el archivo:", error);
+                alert("Ocurrió un error al procesar el archivo. Revise la consola para más detalles.");
+            } finally {
+                processBtn.disabled = false;
+                processText.textContent = 'Dividir Archivo';
+                processSpinner.classList.add('hidden');
+                processBtn.classList.remove('opacity-75', 'cursor-not-allowed');
+                
+                if (!resultsArea.classList.contains('hidden')) {
+                    resultsArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            }
+        });
+
+        // Split by Size
+        async function splitFileBySize(file, sizeMB) {
+            const bytesPerChunk = Math.floor(sizeMB * 1024 * 1024);
+            const parts = [];
+            let offset = 0;
+            let partNumber = 1;
+
+            const dotIndex = file.name.lastIndexOf('.');
+            const nameBase = dotIndex !== -1 ? file.name.substring(0, dotIndex) : file.name;
+            const ext = dotIndex !== -1 ? file.name.substring(dotIndex) : '.log';
+
+            while (offset < file.size) {
+                const end = Math.min(offset + bytesPerChunk, file.size);
+                const partBlob = file.slice(offset, end); 
+                parts.push({ name: `${nameBase}_part${partNumber}${ext}`, blob: partBlob });
+                partNumber++;
+                offset = end;
+            }
+            return parts;
+        }
+
+        // Split by Lines
+        async function splitFileByLines(file, linesPerChunk) {
+            const CHUNK_SIZE = 1024 * 1024 * 5; 
+            let offset = 0;
+            let lineCount = 0;
+            let lastSplitOffset = 0;
+            let partNumber = 1;
+            const parts = [];
+
+            const dotIndex = file.name.lastIndexOf('.');
+            const nameBase = dotIndex !== -1 ? file.name.substring(0, dotIndex) : file.name;
+            const ext = dotIndex !== -1 ? file.name.substring(dotIndex) : '.log';
+
+            while (offset < file.size) {
+                const slice = file.slice(offset, Math.min(offset + CHUNK_SIZE, file.size));
+                const buffer = await slice.arrayBuffer();
+                const view = new Uint8Array(buffer); 
+                
+                for (let i = 0; i < view.length; i++) {
+                    if (view[i] === 10) { 
+                        lineCount++;
+                        if (lineCount === linesPerChunk) {
+                            const endOffset = offset + i + 1;
+                            const partBlob = file.slice(lastSplitOffset, endOffset);
+                            
+                            parts.push({ name: `${nameBase}_part${partNumber}${ext}`, blob: partBlob });
+                            
+                            partNumber++;
+                            lastSplitOffset = endOffset;
+                            lineCount = 0;
+                        }
+                    }
+                }
+                offset += CHUNK_SIZE;
+                if (partNumber % 5 === 0) await new Promise(r => setTimeout(r, 0));
+            }
+
+            if (lastSplitOffset < file.size) {
+                const partBlob = file.slice(lastSplitOffset, file.size);
+                parts.push({ name: `${nameBase}_part${partNumber}${ext}`, blob: partBlob });
+            }
+
+            return parts;
+        }
+
+        // Split by Hour
+        async function splitFileByHour(file) {
+            const CHUNK_SIZE = 10 * 1024 * 1024;
+            let offset = 0;
+            let remainder = '';
+            let currentKey = 'sin_fecha';
+            const groups = new Map();
+
+            const flushGroup = (key) => {
+                const group = groups.get(key);
+                if (group && group.tempStr.length > 0) {
+                    const content = group.tempStr.join('\n') + '\n';
+                    const blob = new Blob([content], { type: 'text/plain' });
+                    group.blobs.push(blob);
+                    group.tempStr = [];
+                }
+            };
+
+            while (offset < file.size) {
+                const end = Math.min(offset + CHUNK_SIZE, file.size);
+                const slice = file.slice(offset, end);
+                const text = await slice.text();
+                
+                const lines = (remainder + text).split('\n');
+                remainder = (end < file.size) ? lines.pop() : '';
+                
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i];
+                    if (!line.trim() && i === lines.length -1 && end === file.size) continue;
+
+                    const regex = /((?:\d{4}[-\/]\d{2}[-\/]\d{2}|\d{2}[-\/]\d{2}[-\/]\d{4}|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2}))[T\s]+(\d{2}):\d{2}:\d{2}/i;
+                    const match = line.match(regex);
+                    
+                    if (match) {
+                        const datePart = match[1].replace(/[\/\s]/g, '-');
+                        const hourPart = match[2];
+                        currentKey = `${datePart}_${hourPart}00`;
+                    }
+                    
+                    if (!groups.has(currentKey)) {
+                        groups.set(currentKey, { tempStr: [], blobs: [] });
+                    }
+                    
+                    groups.get(currentKey).tempStr.push(line);
+                    
+                    if (groups.get(currentKey).tempStr.length >= 25000) {
+                        flushGroup(currentKey);
+                    }
+                }
+                
+                offset += CHUNK_SIZE;
+                await new Promise(r => setTimeout(r, 0));
+            }
+            
+            for (const [key, group] of groups.entries()) {
+                flushGroup(key);
+            }
+
+            const parts = [];
+            const dotIndex = file.name.lastIndexOf('.');
+            const nameBase = dotIndex !== -1 ? file.name.substring(0, dotIndex) : file.name;
+            const ext = dotIndex !== -1 ? file.name.substring(dotIndex) : '.log';
+            
+            const sortedKeys = Array.from(groups.keys()).sort();
+
+            for (const key of sortedKeys) {
+                const group = groups.get(key);
+                if (group.blobs.length > 0) {
+                    const finalBlob = new Blob(group.blobs, { type: 'text/plain' });
+                    parts.push({
+                        name: `${nameBase}_${key}${ext}`,
+                        blob: finalBlob
+                    });
+                }
+            }
+            
+            return parts;
+        }
+
+        // Render Results to UI
+        function renderResults(parts) {
+            resultsList.innerHTML = '';
+            resultsCount.textContent = `${parts.length} parte${parts.length > 1 ? 's' : ''}`;
+
+            parts.forEach((part, index) => {
+                const url = URL.createObjectURL(part.blob);
+                objectUrls.push(url);
+
+                const li = document.createElement('li');
+                li.className = 'py-4 flex items-center justify-between hover:bg-gray-50 transition-colors px-2 rounded-lg';
+                
+                li.innerHTML = `
+                    <div class="flex items-center min-w-0 flex-1">
+                        <svg class="h-6 w-6 text-gray-400 mr-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                        </svg>
+                        <div class="min-w-0 flex-1">
+                            <p class="text-sm font-medium text-gray-900 truncate">${part.name}</p>
+                            <p class="text-xs text-gray-500">${formatBytes(part.blob.size)}</p>
+                        </div>
+                    </div>
+                    <div class="ml-4 flex-shrink-0">
+                        <a href="${url}" download="${part.name}" class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+                            <svg class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                            Descargar
+                        </a>
+                    </div>
+                `;
+                resultsList.appendChild(li);
+            });
+        }
+    </script>
+</body>
+</html>
